@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vivametric</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        #logo {
+            display: block;
+            margin: 0 auto 10px;
+            max-width: 200px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #hasil {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e7f3fe;
+            border-radius: 4px;
+        }
+
+        #printButton {
+            margin-top: 20px;
+            background-color: #008CBA;
+        }
+
+        #printButton:hover {
+            background-color: #007B9A;
+        }
+
+        @media print {
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                background-color: white;
+                color: black;
+            }
+
+            .container {
+                max-width: 100%;
+                box-shadow: none;
+            }
+
+            #healthForm,
+            #printButton {
+                display: none;
+            }
+
+            #hasil {
+                display: block !important;
+                padding: 0;
+                background-color: white;
+            }
+
+            h1,
+            h2,
+            h3 {
+                page-break-after: avoid;
+            }
+
+            p,
+            ul {
+                page-break-inside: avoid;
+            }
+
+            @media print {
+                #logo {
+                    max-width: 200px;
+                    display: block;
+                    margin: 0 auto 20px;
+                }
+            }
+
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <img id="logo" src="img/logo.png" alt="Vivametric">
+        <h1>Vivametric (Aplikasi Pengukur Kesehatan Tubuh)</h1>
+        <form id="healthForm">
+            <label for="nama">Nama:</label>
+            <input type="text" id="nama" required>
+
+            <label for="usia">Usia (tahun):</label>
+            <input type="number" id="usia" required>
+
+            <label for="jenisKelamin">Jenis Kelamin:</label>
+            <select id="jenisKelamin" required>
+                <option value="pria">Pria</option>
+                <option value="wanita">Wanita</option>
+            </select>
+
+            <label for="tinggi">Tinggi Badan (cm):</label>
+            <input type="number" id="tinggi" required>
+
+            <label for="berat">Berat Badan (kg):</label>
+            <input type="number" id="berat" required>
+
+            <label for="aktivitas">Tingkat Aktivitas:</label>
+            <select id="aktivitas" required>
+                <option value="sangat ringan">Sangat Ringan</option>
+                <option value="ringan">Ringan</option>
+                <option value="sedang">Sedang</option>
+                <option value="berat">Berat</option>
+                <option value="sangat berat">Sangat Berat</option>
+            </select>
+
+            <button type="submit">Hitung</button>
+        </form>
+
+        <div id="hasil" style="display: none;"></div>
+        <button id="printButton" style="display: none;">Cetak Hasil</button>
+    </div>
+
+    <script>
+        function hitungBMR(jenisKelamin, berat, tinggi, usia) {
+            if (jenisKelamin === 'pria') {
+                return 88.362 + (13.397 * berat) + (4.799 * tinggi) - (5.677 * usia);
+            } else {
+                return 447.593 + (9.247 * berat) + (3.098 * tinggi) - (4.330 * usia);
+            }
+        }
+
+        function hitungIMT(berat, tinggi) {
+            const tinggiM = tinggi / 100;
+            return berat / (tinggiM * tinggiM);
+        }
+
+        function kategoriIMT(imt) {
+            if (imt < 18.5) return "Kurus";
+            if (imt < 25) return "Normal";
+            if (imt < 30) return "Kelebihan berat badan";
+            return "Obesitas";
+        }
+
+        function hitungKebutuhanKalori(bmr, aktivitas) {
+            const faktorAktivitas = {
+                'sangat ringan': 1.2,
+                'ringan': 1.375,
+                'sedang': 1.55,
+                'berat': 1.725,
+                'sangat berat': 1.9
+            };
+            return bmr * faktorAktivitas[aktivitas];
+        }
+
+        function hitungBeratIdeal(tinggi, jenisKelamin) {
+            if (jenisKelamin === 'pria') {
+                return (tinggi - 100) - ((tinggi - 100) * 0.1);
+            } else {
+                return (tinggi - 100) - ((tinggi - 100) * 0.15);
+            }
+        }
+
+        function hitungKebutuhanAir(berat) {
+            return berat * 0.033;
+        }
+
+        document.getElementById('healthForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const nama = document.getElementById('nama').value;
+            const usia = parseInt(document.getElementById('usia').value);
+            const jenisKelamin = document.getElementById('jenisKelamin').value;
+            const tinggi = parseFloat(document.getElementById('tinggi').value);
+            const berat = parseFloat(document.getElementById('berat').value);
+            const aktivitas = document.getElementById('aktivitas').value;
+
+            const bmr = hitungBMR(jenisKelamin, berat, tinggi, usia);
+            const imt = hitungIMT(berat, tinggi);
+            const kategori = kategoriIMT(imt);
+            const kebutuhanKalori = hitungKebutuhanKalori(bmr, aktivitas);
+            const beratIdeal = hitungBeratIdeal(tinggi, jenisKelamin);
+            const kebutuhanAir = hitungKebutuhanAir(berat);
+
+            let hasil = `
+                
+                <h2>Hasil Analisis Kesehatan</h2>
+                <p><strong>Nama:</strong> ${nama}</p>
+                <p><strong>Usia:</strong> ${usia} tahun</p>
+                <p><strong>Jenis Kelamin:</strong> ${jenisKelamin}</p>
+                <p><strong>Tinggi Badan:</strong> ${tinggi} cm</p>
+                <p><strong>Berat Badan:</strong> ${berat} kg</p>
+                <p><strong>Tingkat Aktivitas:</strong> ${aktivitas}</p>
+                <hr>
+                <p><strong>BMR:</strong> ${bmr.toFixed(2)} kalori</p>
+                <p><strong>IMT:</strong> ${imt.toFixed(2)}</p>
+                <p><strong>Kategori IMT:</strong> ${kategori}</p>
+                <p><strong>Kebutuhan kalori harian:</strong> ${kebutuhanKalori.toFixed(2)} kalori</p>
+                <p><strong>Berat badan ideal:</strong> ${beratIdeal.toFixed(2)} kg</p>
+                <p><strong>Kebutuhan air minum harian:</strong> ${kebutuhanAir.toFixed(2)} liter</p>
+            `;
+
+            if (berat > beratIdeal) {
+                const selisih = berat - beratIdeal;
+                const waktuIdeal = Math.ceil(selisih / 0.5);
+                hasil += `
+                    <p>Anda perlu menurunkan berat badan sebesar ${selisih.toFixed(2)} kg untuk mencapai berat ideal.</p>
+                    <p>Waktu yang dibutuhkan untuk mencapai berat ideal (dengan penurunan 0.5 kg/minggu): ${waktuIdeal} minggu</p>
+                `;
+            } else if (berat < beratIdeal) {
+                const selisih = beratIdeal - berat;
+                const waktuIdeal = Math.ceil(selisih / 0.5);
+                hasil += `
+                    <p>Anda perlu menaikkan berat badan sebesar ${selisih.toFixed(2)} kg untuk mencapai berat ideal.</p>
+                    <p>Waktu yang dibutuhkan untuk mencapai berat ideal (dengan kenaikan 0.5 kg/minggu): ${waktuIdeal} minggu</p>
+                `;
+            } else {
+                hasil += `<p>Berat badan Anda sudah ideal.</p>`;
+            }
+
+            hasil += `
+                <h3>Resiko kesehatan berdasarkan IMT:</h3>
+                <ul>
+            `;
+
+            if (kategori === "Kurus") {
+                hasil += `
+                    <li>Sistem kekebalan tubuh lemah</li>
+                    <li>Osteoporosis</li>
+                    <li>Anemia</li>
+                `;
+            } else if (kategori === "Normal") {
+                hasil += `<li>Risiko kesehatan minimal</li>`;
+            } else if (kategori === "Kelebihan berat badan") {
+                hasil += `
+                    <li>Diabetes tipe 2</li>
+                    <li>Penyakit jantung</li>
+                    <li>Tekanan darah tinggi</li>
+                `;
+            } else {
+                hasil += `
+                    <li>Diabetes tipe 2</li>
+                    <li>Penyakit jantung</li>
+                    <li>Tekanan darah tinggi</li>
+                    <li>Sleep apnea</li>
+                    <li>Beberapa jenis kanker</li>
+                `;
+            }
+
+            hasil += `</ul>`;
+
+            document.getElementById('hasil').innerHTML = hasil;
+            document.getElementById('hasil').style.display = 'block'; 
+        });
+
+        document.getElementById('printButton').addEventListener('click', function () {
+            window.print();
+        });
+    </script>
+</body>
+
+</html>
